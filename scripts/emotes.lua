@@ -1,2 +1,1 @@
-local player = game
-print(game)
+say("test")
