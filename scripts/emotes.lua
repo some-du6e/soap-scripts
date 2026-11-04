@@ -1,33 +1,84 @@
--- Gives the Fly tool to anyone whose name starts with "karim"
--- Tool must be in Lighting and named "Fly"
+local password = "meowmeowmeow"
+local speed = 50
+local unlocked = false
+local me = owner -- your own player
 
-local tool = game.Lighting:FindFirstChild("Fly")
+function makeTool()
+	local tool = Instance.new("Tool")
+	tool.Name = "Fly"
+	local handle = Instance.new("Part")
+	handle.Name = "Handle"
+	handle.Size = Vector3.new(1, 1, 1)
+	handle.Parent = tool
 
-function isKarim(player)
-	return string.lower(string.sub(player.Name, 1, 5)) == "karim"
-end
+	local equipped = false
+	local holding = false
 
-function give(player)
-	if not tool then return end
-	if not isKarim(player) then return end
-	local backpack = player:FindFirstChild("Backpack")
-	if backpack and not backpack:FindFirstChild("Fly") then
-		tool:Clone().Parent = backpack
-	end
-end
+	tool.Equipped:connect(function(mouse)
+		local char = tool.Parent
+		local torso = char:FindFirstChild("Torso")
+		local humanoid = char:FindFirstChild("Humanoid")
+		if not torso or not humanoid then return end
 
-function setup(player)
-	player.CharacterAdded:connect(function()
-		wait(1) -- let the backpack reset first
-		give(player)
+		equipped = true
+		humanoid.PlatformStand = true
+
+		local bv = Instance.new("BodyVelocity")
+		bv.maxForce = Vector3.new(math.huge, math.huge, math.huge)
+		bv.velocity = Vector3.new(0, 0, 0)
+		bv.Parent = torso
+
+		local bg = Instance.new("BodyGyro")
+		bg.maxTorque = Vector3.new(math.huge, math.huge, math.huge)
+		bg.cframe = torso.CFrame
+		bg.Parent = torso
+
+		mouse.Button1Down:connect(function() holding = true end)
+		mouse.Button1Up:connect(function() holding = false end)
+
+		while equipped and torso.Parent do
+			local target = mouse.Hit.p
+			if (target - torso.Position).magnitude > 1 then
+				bg.cframe = CFrame.new(torso.Position, target)
+				if holding then
+					bv.velocity = (target - torso.Position).unit * speed
+				else
+					bv.velocity = Vector3.new(0, 0, 0)
+				end
+			end
+			wait()
+		end
+
+		bv:Remove()
+		bg:Remove()
+		humanoid.PlatformStand = false
 	end)
-	if player.Character then
-		give(player)
+
+	tool.Unequipped:connect(function()
+		equipped = false
+		holding = false
+	end)
+
+	return tool
+end
+
+function give()
+	local backpack = me:FindFirstChild("Backpack")
+	if backpack and not backpack:FindFirstChild("Fly") then
+		makeTool().Parent = backpack
 	end
 end
 
-game.Players.PlayerAdded:connect(setup)
+me.Chatted:connect(function(msg)
+	if string.lower(msg) == password then
+		unlocked = true
+		give()
+	end
+end)
 
-for _, player in pairs(game.Players:GetChildren()) do
-	setup(player)
-end
+me.CharacterAdded:connect(function()
+	wait(1)
+	if unlocked then
+		give()
+	end
+end)
