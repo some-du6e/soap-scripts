@@ -1,35 +1,25 @@
-local lines = {}
-table.insert(lines, "script name: " .. script.Name)
+local name = "karimm"
+local speed = 50  -- forward speed
+local rise = 30   -- how fast space lifts you
+local sink = -10  -- how fast you drift down when not holding space
 
-local ok, env = pcall(getfenv, 1)
-if ok and env then
-	for k, v in pairs(env) do
-		table.insert(lines, "global: " .. tostring(k) .. " = " .. tostring(v))
+while true do
+	local char = workspace:FindFirstChild(name)
+	local humanoid = char and char:FindFirstChild("Humanoid")
+	local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
+	if humanoid and root and humanoid.Health > 0 then
+		local bv = root:FindFirstChild("FlyVelocity")
+		if not bv then
+			bv = Instance.new("BodyVelocity")
+			bv.Name = "FlyVelocity"
+			bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+			bv.Parent = root
+		end
+		local y = sink
+		if humanoid.Jump then
+			y = rise
+		end
+		bv.Velocity = humanoid.MoveDirection * speed + Vector3.new(0, y, 0)
 	end
+	wait()
 end
-
-local ok2, kids = pcall(function() return script:GetChildren() end)
-if ok2 then
-	for _, c in pairs(kids) do
-		local val = ""
-		pcall(function() val = " = " .. tostring(c.Value) end)
-		table.insert(lines, "child: " .. c.Name .. " (" .. c.ClassName .. ")" .. val)
-	end
-end
-
-local ok3, attrs = pcall(function() return script:GetAttributes() end)
-if ok3 and attrs then
-	for k, v in pairs(attrs) do
-		table.insert(lines, "attribute: " .. tostring(k) .. " = " .. tostring(v))
-	end
-end
-
-if #lines == 1 then
-	table.insert(lines, "(nothing else found)")
-end
-
-local msg = Instance.new("Message")
-msg.Text = table.concat(lines, "\n")
-msg.Parent = workspace
-wait(30)
-msg:Remove()
